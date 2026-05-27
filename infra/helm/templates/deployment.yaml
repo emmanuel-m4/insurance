@@ -1,0 +1,46 @@
+# Changes made to manifest files such as this are the 'live' versions referred to in ArgoCD's U.I
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appName | quote }}
+  labels:
+    app: {{ .Values.appName | quote }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: {{ .Values.appName | quote }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appName | quote }}
+    spec:
+      containers:
+      - name: "{{ .Values.appName }}-server"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        ports:
+        - containerPort: 8080
+        env:
+          - name: ASPNETCORE_ENVIRONMENT
+            value: "Production"
+          - name: ConnectionStrings__DefaultConnection
+            valueFrom:
+              secretKeyRef:
+                name: claims-db
+                key: ConnectionStrings__DefaultConnection
+        readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+        livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      imagePullSecrets:
+      - name: ghcr-secret

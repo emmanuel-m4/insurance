@@ -1,0 +1,65 @@
+name: Terraform Plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select the environment to deploy"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'staging' && 'staging' || 'dev' }}
+  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  plan:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name == 'staging' && 'staging' || 'dev' }}
+
+    defaults:
+      run:
+        working-directory: ./infra/terraform/${{ env.ENVIRONMENT}}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Format check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan-${{ env.ENVIRONMENT }}
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: tfplan-${{ env.ENVIRONMENT }}
+          path: infra/terraform/${{ env.ENVIRONMENT}}
+          retention-days: 1

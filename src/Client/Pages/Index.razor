@@ -1,0 +1,52 @@
+﻿@page "/"
+@using Insurance.Shared.Models
+@using System.Net.Http.Json
+@using Insurance.Shared.Enums
+@inject HttpClient Http
+
+<PageTitle>Dashboard</PageTitle>
+
+<h1>Hello, Agent!</h1>
+
+@if (claims == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div style="display: flex; padding-top: 10px; gap: 10px;">
+        <div class="card bg-secondary mb-3" style="max-width: 18rem;">
+            <div class="card-header">PENDING</div>
+            <div class="card-body">
+                <h5 class="card-title">@claims?.Count(a => a.Status == ClaimStatus.Pending)</h5>
+            </div>
+        </div>
+        <div class="card bg-success mb-3" style="max-width: 18rem;">
+            <div class="card-header">APPROVED</div>
+            <div class="card-body">
+                <h5 class="card-title">@claims?.Count(a => a.Status == ClaimStatus.Approved)</h5>
+            </div>
+        </div>
+        <div class="card bg-danger mb-3" style="max-width: 18rem;">
+            <div class="card-header">DENIED</div>
+            <div class="card-body">
+                <h5 class="card-title">@claims?.Count(a => a.Status == ClaimStatus.Denied)</h5>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<CustomerClaim>? claims;
+
+    protected override async Task OnInitializedAsync()
+    {
+        claims = await Http.GetFromJsonAsync<List<CustomerClaim>>("/api/claims");
+    }
+
+    private int GetCount(string status)
+    {
+        if (claims == null) return 0;
+        return claims.Count(c => c.Status.ToString() == status);
+    }
+}

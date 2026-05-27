@@ -1,0 +1,49 @@
+﻿@page "/claims"
+@using Insurance.Shared.Models
+@inject HttpClient Http
+
+<PageTitle>Claims</PageTitle>
+
+<h1>Claims</h1>
+
+@if (Message == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h1>@Message</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Policy Number</th>
+                <th>Claim Type</th>
+                <th>Amount</th>
+                <th>Description</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (CustomerClaim claim in claims ?? new List<CustomerClaim>())
+            {
+                <tr>
+                    <td>@claim.PolicyNumber</td>
+                    <td>@claim.ClaimType</td>
+                    <td>@claim.Amount</td>
+                    <td>@claim.Description</td>
+                    <td>@claim.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string Message = string.Empty;
+    private List<CustomerClaim> ? claims = new List<CustomerClaim>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        claims = await Http.GetFromJsonAsync<List<CustomerClaim>>("/api/claims");
+    }
+}

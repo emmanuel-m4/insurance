@@ -1,0 +1,63 @@
+name: Terraform Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select the environment to deploy"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      run_id:
+        description: "Enter the run id for the artifact"
+        required: true
+        type: number
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    defaults:
+      run:
+        working-directory: ./infra/terraform/${{ github.event.inputs.environment }}
+
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: tfplan-${{ github.event.inputs.environment }}
+          path: infra/terraform/${{ github.event.inputs.environment }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.inputs.run_id }}
+          pattern: tf-plan-*
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan-${{ github.event.inputs.environment }}

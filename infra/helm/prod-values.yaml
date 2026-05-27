@@ -1,0 +1,25 @@
+replicaCount: 3
+revisionHistoryLimit: 3
+appName: claims
+namespace: prod
+image:
+  repository: 
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 8080
+  nodePort: 30090
+
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    host:
+    paths:
+      path: "/"
+      pathType: Prefix
+
+resources: {}

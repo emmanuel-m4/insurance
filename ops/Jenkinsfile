@@ -1,0 +1,86 @@
+pipeline {
+    agent any
+    options { timestamps() }
+    triggers { githubPush() }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Integrate') {
+            agent{
+                docker{
+                    image 'mcr.microsoft.com/dotnet/sdk:10.0'
+                    args '-u root:root'
+                    reuseNode true
+                }
+            }
+            steps {
+                echo 'Restoring dependencies'
+                sh 'dotnet restore src/Insurance.sln'
+
+                echo 'Ensuring consistent formatting'
+                sh 'dotnet format src/Insurance.sln --verify-no-changes'
+
+                echo 'Building project'
+                sh 'dotnet build -c Release --no-restore src/Insurance.sln -warnaserror'
+
+                echo 'Running Tests'
+                sh '''
+                    cd src/Test
+                    dotnet test -c Release --no-build --verbosity normal
+                '''
+            }
+        }
+        stage ('Scan'){
+            agent any
+            steps{
+                echo 'Building Image'
+                sh 'docker build src -t  '
+                echo 'Scanning Docker image with Trivy...'
+                sh '''
+                if ! command -v trivy > /dev/null; then
+                echo "Installing Trivy..."
+                mkdir -p $HOME/bin
+                curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b $HOME/bin
+                fi
+                export PATH="$HOME/bin:$PATH"
+                mkdir -p Reports
+                trivy image   --exit-code 1 --severity HIGH,CRITICAL --format table | tee Reports/trivy-report.txt
+                '''
+            }
+        }
+        stage('Deploy') {
+            agent any
+            when {
+                expression { fileExists('src/Dockerfile') }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'insurance-private', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
+                    echo 'Building Docker image'
+                    sh '''
+                        docker build src -t  
+                    '''
+
+                    echo 'Pushing image'
+                    sh '''
+                        echo $GH_TOKEN | docker login ghcr.io -u $GH_USER --password-stdin
+                        docker push  
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'Reports/trivy-report.txt', allowEmptyArchive: true, fingerprint: true
+            cleanWs()
+        }
+        // failure {
+        //     mail to: '',
+        //          subject: "Pipeline failed",
+        //          body: "Review the latest build of the project"
+        // }
+    }
+}

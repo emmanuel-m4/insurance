@@ -53,9 +53,13 @@ This is a sandbox for exploring various software tools and principles. It curren
     │   ├── TestResults
 ```
 
-## [Azure](https://azure.microsoft.com/en-us)
+## [Azure SQL](https://azure.microsoft.com/en-us)
 
 <img src="imgs/db_activity_log.png" width="auto" />
+
+## [Azure DevOps](https://azure.microsoft.com/en-us)
+
+<img src="imgs/az_devops.png" width="auto" />
 
 ## [ArgoCD](https://azure.microsoft.com/en-us)
 
@@ -80,4 +84,3 @@ This is a sandbox for exploring various software tools and principles. It curren
 ## [Traefik](https://doc.traefik.io/traefik/)
 
 <img src="imgs/traefik_dashboard.png"/>
-

@@ -1,6 +1,6 @@
 # Summary
 
-This is a sandbox for exploring various software tools and principles. It currently hosts a Blazor Web Assembly project designed for claims management at an arbitrary insurance company.
+This is a sandbox for exploring various software tools and principles. It currently hosts a Blazor Web Assembly project designed for claims management at an arbritrary insurance company.
 
 >[!Note]
 >Some tools serve the same function. Files are kept centralized to simplify context switching.
